@@ -74,12 +74,12 @@
     (cons (repeat 0) x)
     (reduce (fn [a r] (map + a (to-num r))) x)))
 (defn find-countries
-  "find countries whose names math the pattern given as string"
+  "find countries whose names match the pattern given as string"
   [all-data pattern]
  (let  [p (re-pattern pattern)]
     (as-> all-data x
       (drop 1 x )                                   ;; drop header row
-      (filter (fn [r] (re-matches p (nth r 1 ))) x) ;; filter country
+      (filter (fn [r] (re-matches p (nth r 1 ))) x) ;; filter country names in column 1
       (map (fn [r] (nth r 1)) x)
       (set x)
       (sort x))))
