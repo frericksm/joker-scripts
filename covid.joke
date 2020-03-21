@@ -36,10 +36,7 @@
   [url]
   (as-> (fetch-data url) x
     (csv/csv-seq x)))
-(defn  all-data-from-file
-  []
-  (as-> data-file x (os/open x)
-        (csv/csv-seq x)))
+
 (def YYYY-MM-DD  "2006-01-02")
 (def MDY "1/2/06")
 (defn parse-date [t layout]
