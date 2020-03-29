@@ -9,8 +9,9 @@
 (def usage "Usage: covid OPTIONS country-name-regex\nSample: covid 'German.*'")
 (def opts
   [["-c" "--countries" "List countries matching regex"]
-   ["-t" "--timeseries" "Shows timeseries summed up for matching countries"]
-   ["-d" "--date DATE" "Calculations seen from this date"]
+   ["-t" "--timeseries" "Shows timeseries added  up for matching countries"]
+   ["-d" "--date DATE" "Calculations seen from DATE"]
+   ["-l" "--look-back DAYS" "List calculations for the last DAYS" :default 1 :parse-fn atoi]
    ["-v" "--verbose" "verbose "]
    ["-m" "--mortal" "Show mortality changing rates"]
    ["-h" "--help" "calculates changing  rates of covid-19 cases  for number of comfirmed cases or deaths"]])
@@ -101,12 +102,11 @@
 (defn rate
   [z n]
   (if (or (nil? n) (= n 0)) 0  (/ (if (nil? z) 0 z) n)))
-(defn calc
+(defn calc2
   "Calc some derived information"
-  [data date]
-  (let [date-as-t (if (not (nil? date)) (parse-date date YYYY-MM-DD) (first (last data)))
-        data-as-map (into {} data)
-       day-1 (if (nil? date-as-t)   (first (last data)) date-as-t)
+  [data date-as-t]
+  (let [data-as-map (into {} data)
+        day-1 (if (nil? date-as-t)   (first (last data)) date-as-t)
         day-2 (t/add-date day-1 0 0 -1)
         day-3 (t/add-date day-1 0 0 -2)
         day-7 (t/add-date day-1 0 0 -6)
@@ -123,17 +123,26 @@
      :rate-3-days rate-3-days
      :rate-7-days rate-7-days
      :rate-14-days rate-14-days}))
+(defn calc
+  "Calc some derived information"
+  [data date look-back]
+  (let [date-as-t (if (not (nil? date)) (parse-date date YYYY-MM-DD) (first (last data)))
+        date-range (as-> look-back x
+            (range x)
+(map (fn [i] (t/add-date date-as-t  0 0 (* -1 i))) x))]
+ (map  (partial  calc2 data) date-range)))
+
 (defn start "Calculating infection rate"
-  [all-data countries country date timeseries verbose mortal]
+  [all-data countries country date look-back timeseries verbose mortal]
   (if (and verbose (> (count countries) 1))
     (println (format  "You get the sums for the countries %s. Choose one of them to get the results for that country only." countries)))
   (println (format "start: Calculating %s rate of %s: " (if mortal "mortal" "confirmed" ) (if (<= (count countries) 1) countries "more than one country (use option -c).")))
   (let [data (data-map-country all-data country)
-        result (calc data date)]
+        result (calc data date look-back)]
     (cond  timeseries
-           (println (:timeseries result))
+           (println (map :timeseries result))
            :else
-           (println (dissoc  result :timeseries))))
+           (pprint (map (fn [r] (dissoc r :timeseries )) result))))
   (println "Done"))
 ;; Entrypoint
 (let [{:keys [options summary errors arguments]} (cli/parse-opts *command-line-args* opts)
@@ -143,11 +152,12 @@
       verbose? (:verbose options)
       mortal? (:mortal options)
       date-option (:date options)
+      look-back (:look-back options)
       country (or (first arguments) ".*")
       url (if mortal? url-deaths url-confirmed)
       all-data (all-data url)
       countries (find-countries all-data country)]
-  #_(println options arguments)
+  (println options arguments)
   (cond
     errors
     (do
@@ -161,5 +171,5 @@
     (println "version: " version)
     :else
     (do
-      (start all-data countries  country date-option timeseries? verbose? mortal?)
+      (start all-data countries  country date-option look-back timeseries? verbose? mortal?)
       )))
