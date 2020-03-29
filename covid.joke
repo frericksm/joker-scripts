@@ -5,6 +5,7 @@
             [joker.csv :as csv]
             [joker.time :as t]
             [joker.http :as h]
+            [joker.math :as m]
             [joker.strconv :refer [atoi]]))
 (def usage "Usage: covid OPTIONS country-name-regex\nSample: covid 'German.*'")
 (def opts
@@ -101,28 +102,31 @@
     ))
 (defn rate
   [z n]
-  (if (or (nil? n) (= n 0)) 0  (/ (if (nil? z) 0 z) n)))
+  (double (if (or (nil? n) (= n 0)) 0  (/ (if (nil? z) 0 z) n))))
+
+(defn fmt [num]
+  (format "%.2f" num))
 (defn calc2
   "Calc some derived information"
   [data date-as-t]
   (let [data-as-map (into {} data)
-        day-1 (if (nil? date-as-t)   (first (last data)) date-as-t)
-        day-2 (t/add-date day-1 0 0 -1)
-        day-3 (t/add-date day-1 0 0 -2)
-        day-7 (t/add-date day-1 0 0 -6)
-        day-14 (t/add-date day-1 0 0 -13)
-        rate-1-day (double (rate (get data-as-map day-1) (get data-as-map day-2)))
-        rate-3-days (double (rate (get data-as-map day-1) (get data-as-map day-3)))
-        rate-7-days (double (rate (get data-as-map day-1) (get data-as-map day-7)))
-        rate-14-days (double (rate (get data-as-map day-1) (get data-as-map day-14)))
-        ]
+        day-0 date-as-t
+        day-1 (t/add-date day-0 0 0 -1)
+        day-3 (t/add-date day-0 0 0 -3)
+        day-7 (t/add-date day-0 0 0 -7)
+        day-14 (t/add-date day-0 0 0 -14)
+        rate-1-day   (rate (get data-as-map day-0) (get data-as-map day-1))
+        rate-3-days  (rate (get data-as-map day-0) (get data-as-map day-3))
+        rate-7-days  (rate (get data-as-map day-0) (get data-as-map day-7))
+        rate-14-days (rate (get data-as-map day-0) (get data-as-map day-14))]
     {:timeseries data
-     :date (format-date day-1 YYYY-MM-DD)
-     :cases (get data-as-map date-as-t)
-     :rate-1-day rate-1-day
-     :rate-3-days rate-3-days
-     :rate-7-days rate-7-days
-     :rate-14-days rate-14-days}))
+     :date (format-date day-0 YYYY-MM-DD)
+     :cases (get data-as-map day-0)
+     :doubling-rate-in-days (fmt (/ (m/log 2.0) (m/log rate-1-day)))
+     :rate-1-day (fmt rate-1-day)
+     :rate-3-days (fmt rate-3-days)
+     :rate-7-days (fmt rate-7-days)
+     :rate-14-days (fmt rate-14-days)}))
 (defn calc
   "Calc some derived information"
   [data date look-back]
