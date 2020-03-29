@@ -22,7 +22,7 @@
   (println summary)
   (when errors
     (println "\nErrors:")
-    (run! println errors)))
+    (println errors)))
 (defn debug [msg o]
   (do (println msg o) o))
 ;;;;;;;;;;;;
@@ -105,7 +105,14 @@
   (double (if (or (nil? n) (= n 0)) 0  (/ (if (nil? z) 0 z) n))))
 
 (defn fmt [num]
-  (format "%.2f" num))
+  (format "%.02f" num))
+
+(defn doubling-rate-in-days [r]
+  (let [l2 (double (m/log 2.0))
+        lr (double (m/log r))]
+    #_(println (format "r:%s l2: %s lr :%s" r l2 lr))
+    (/ l2 lr)))
+
 (defn calc2
   "Calc some derived information"
   [data date-as-t]
@@ -122,7 +129,7 @@
     {:timeseries data
      :date (format-date day-0 YYYY-MM-DD)
      :cases (get data-as-map day-0)
-     :doubling-rate-in-days (fmt (/ (m/log 2.0) (m/log rate-1-day)))
+     :doubling-rate-in-days (fmt (doubling-rate-in-days rate-1-day)) 
      :rate-1-day (fmt rate-1-day)
      :rate-3-days (fmt rate-3-days)
      :rate-7-days (fmt rate-7-days)
@@ -148,7 +155,10 @@
            :else
            (pprint (map (fn [r] (dissoc r :timeseries )) result))))
   (println "Done"))
+
+
 ;; Entrypoint
+
 (let [{:keys [options summary errors arguments]} (cli/parse-opts *command-line-args* opts)
       {:keys [help version ]} options
       countries? (:countries options)
@@ -161,7 +171,7 @@
       url (if mortal? url-deaths url-confirmed)
       all-data (all-data url)
       countries (find-countries all-data country)]
-  (println options arguments)
+  #_(println options arguments)
   (cond
     errors
     (do
