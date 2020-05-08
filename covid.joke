@@ -221,3 +221,4 @@
     (do
       (start all-data countries  country date-option look-back timeseries? verbose? mortal? (population-map))
       )))
+
