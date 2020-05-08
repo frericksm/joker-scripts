@@ -28,6 +28,7 @@
 ;;;;;;;;;;;;
 (def url-confirmed "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
 (def url-deaths  "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
+(def url-uid-lookup "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv")
 
 (defn fetch-data
   "Retrieves data from Johns Hopkins university via github"
@@ -35,6 +36,28 @@
   (as->
       (h/send {:url url}) x
     (:body x)))
+
+(defn population-map 
+  "Antwortet mit einer Map die das Land auf die Grösse der Bevölkerung abbildet."
+  []
+  (as-> (fetch-data url-uid-lookup) x
+(csv/csv-seq x)
+(drop 1 x)
+(reduce (fn [a v] ( assoc a (nth v 10) (nth v 11))) nil  x)))
+
+(defn population
+  "Reads all data rows where the  name of the country matches a regex in string form and summs the Population"
+  [population-map country]
+  (let  [p (re-pattern country)]
+    (as-> population-map x
+      (filter (fn [r] (re-matches p (nth r 0 ))) x) ;; filter country
+      (map second x)                                ;; map on second
+      (map joker.string/trim x)                     ;; trim
+      (filter (fn [s] (not= "" s)) x)               ;; Entferne Leerstrings
+      (map bigint x)                                ;; int
+      (apply + x)                                   ;; sum
+      )))
+
 (defn all-data
   [url]
   (as-> (fetch-data url) x
@@ -92,8 +115,9 @@
       (filter (fn [r] (re-matches p (nth r 1 ))) x) ;; filter country
       (map (partial drop 4) x)                      ;; drop first 4 columns
       )))
+
 (defn data-map-country
-  "Takes a pattern as strinng and returns the summed up data of all matching counties"
+  "Takes a pattern as string and returns the summed up data of all matching counties"
   [all-data country]
   (as-> (data-country all-data country) x
     (sum-columns x)
@@ -106,43 +130,63 @@
 
 (defn fmt [num]
   (format "%.2f" num))
+
+(defn neu-infektionen-per100k 
+"Antwortet mit der Anzahl von cases je 100000 Einwohner"
+[cases-start cases-end population] 
+  (fmt (* (/ 1.0 population) 100000.0 (- cases-end cases-start ))))
+
 (defn calc2
   "Calc some derived information"
-  [data date-as-t]
+  [data population date-as-t]
   (let [data-as-map (into {} data)
         day-0 date-as-t
         day-1 (t/add-date day-0 0 0 -1)
         day-3 (t/add-date day-0 0 0 -3)
         day-7 (t/add-date day-0 0 0 -7)
         day-14 (t/add-date day-0 0 0 -14)
-        rate-1-day   (rate (get data-as-map day-0) (get data-as-map day-1))
-        rate-3-days  (rate (get data-as-map day-0) (get data-as-map day-3))
-        rate-7-days  (rate (get data-as-map day-0) (get data-as-map day-7))
-        rate-14-days (rate (get data-as-map day-0) (get data-as-map day-14))]
+        cases-day-0 (get data-as-map day-0)
+        cases-day-1 (get data-as-map day-1)
+        cases-day-3 (get data-as-map day-3)
+        cases-day-7 (get data-as-map day-7)
+        cases-day-14 (get data-as-map day-14)
+        rate-1-day   (rate cases-day-0 cases-day-1)
+        rate-3-days  (rate cases-day-0 cases-day-3)
+        rate-7-days  (rate cases-day-0 cases-day-7)
+        rate-14-days (rate cases-day-0 cases-day-14)
+        population population
+        new-cases-within-7-days-per-100k (neu-infektionen-per100k cases-day-7 cases-day-0 population)
+;;neu-infektionen-pro-100000 population
+        ;;neu-infektionen-pro-100000 (fmt (* 1/80000000 100000.0 (- (get data-as-map day-0)(get data-as-map day-1))))
+        doubling-rate-in-days (fmt (/ (m/log 2.0) (m/log rate-1-day)))]
     {:timeseries data
      :date (format-date day-0 YYYY-MM-DD)
-     :cases (get data-as-map day-0)
-     :doubling-rate-in-days (fmt (/ (m/log 2.0) (m/log rate-1-day)))
+     :cases cases-day-0
+;;     :doubling-rate-in-days doubling-rate-in-days
+     ;;:neu-infektionen-pro-100000 neu-infektionen-pro-100000
+     ;;:population  population
+     :new-cases-within-7-days-per-100k new-cases-within-7-days-per-100k
      :rate-1-day (fmt rate-1-day)
      :rate-3-days (fmt rate-3-days)
      :rate-7-days (fmt rate-7-days)
      :rate-14-days (fmt rate-14-days)}))
 (defn calc
   "Calc some derived information"
-  [data date look-back]
+  [data date look-back population]
   (let [date-as-t (if (not (nil? date)) (parse-date date YYYY-MM-DD) (first (last data)))
         date-range (as-> look-back x
             (range x)
 (map (fn [i] (t/add-date date-as-t  0 0 (* -1 i))) x))]
- (map  (partial  calc2 data) date-range)))
+ (map  (partial  calc2 data population) date-range)))
 
 (defn start "Calculating infection rate"
-  [all-data countries country date look-back timeseries verbose mortal]
+  [all-data countries country date look-back timeseries verbose mortal population-map]
   (if (and verbose (> (count countries) 1))
     (println (format  "You get the sums for the countries %s. Choose one of them to get the results for that country only." countries)))
   (println (format "start: Calculating %s rate of %s: " (if mortal "mortal" "confirmed" ) (if (<= (count countries) 1) countries "more than one country (use option -c).")))
   (let [data (data-map-country all-data country)
-        result (calc data date look-back)]
+        population (population population-map country)
+        result (calc data date look-back population)]
     (cond  timeseries
            (println (map :timeseries result))
            :else
@@ -175,5 +219,5 @@
     (println "version: " version)
     :else
     (do
-      (start all-data countries  country date-option look-back timeseries? verbose? mortal?)
+      (start all-data countries  country date-option look-back timeseries? verbose? mortal? (population-map))
       )))
