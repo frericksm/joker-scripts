@@ -1,0 +1,50 @@
+#!/usr/bin/env joker
+(ns places
+  (:require [joker.tools.cli :as cli]
+            [joker.os :as os]
+            [joker.csv :as csv]
+            [joker.time :as t]
+            [joker.http :as h]
+            [joker.math :as m]
+            [joker.strconv :refer [atoi]]))
+(def usage "Usage: covid OPTIONS country-name-regex\nSample: covid 'German.*'")
+(def opts
+  [["-c" "--countries" "List countries matching regex"]
+   ["-t" "--timeseries" "Shows timeseries added  up for matching countries"]
+   ["-d" "--date DATE" "Calculations seen from DATE"]
+   ["-l" "--look-back DAYS" "List calculations for the last DAYS" :default 1 :parse-fn atoi]
+   ["-v" "--verbose" "verbose "]
+   ["-m" "--mortal" "Show mortality changing rates"]
+   ["-h" "--help" "calculates changing  rates of covid-19 cases  for number of comfirmed cases or deaths"]])
+(defn show-options
+  [summary errors]
+  (println usage)
+  (println summary)
+  (when errors
+    (println "\nErrors:")
+    (run! println errors)))
+(defn debug [msg o]
+  (do (println msg o) o))
+;;;;;;;;;;;;
+
+(defn append-each 
+  "append-each :: seq -> seq -> [Map]
+  Returns a seq of maps  by creating a map with keys :seq and :rest for each e of elements. The value for for :seq is s appended with e. The value for :rest is elements without e."
+  [elements s]
+  (as-> elements x
+(map (fn [e] (hash-map :seq  (vec (cons e s))
+                       :rest (vec (remove (hash-set e) elements)))) x)))
+
+(defn k-from-n 
+  "k-from-n :: Int -> [a] [[a]]"
+  [k elements]
+  (loop [result (append-each elements [])
+         i 1]
+(if (= i k) (set (map set (map :seq result)))
+(let [new-i (inc i)
+      new-result (reduce (fn [a {:keys [seq rest]}] (concat (append-each rest seq) a)) [] result)]
+(recur new-result new-i)))))
+
+;; Entrypoint
+
+

@@ -1,0 +1,19 @@
+#!/usr/bin/env joker
+(ns places-test
+  (:require [places :as places]
+            [joker.test :as t]))
+
+
+
+
+(t/deftest test-append-each
+  (t/is (=  [{:rest ["michael"], :seq ["andre"]} {:rest ["andre"], :seq ["michael"]}] (places/append-each ["andre" "michael"] [])))
+  (t/is (=  [{:rest ["michael"], :seq ["andre" "nico"]} {:rest ["andre"], :seq ["michael" "nico"]}] (places/append-each ["andre" "michael"] [ "nico"]))))
+
+(t/deftest k-from-n
+  (t/is (=  [#{"andre"}  #{"michael"}]  (vec (places/k-from-n  1 ["andre" "michael"] ))))
+  (t/is (=  [#{"michael" "andre"}] (vec (places/k-from-n  2 ["andre" "michael"] ))))
+#_(t/is (= 6 (count (places/k-from-n  2 (range 4)))))
+)
+
+(t/run-tests)
