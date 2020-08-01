@@ -7,14 +7,10 @@
             [joker.http :as h]
             [joker.math :as m]
             [joker.strconv :refer [atoi]]))
-(def usage "Usage: covid OPTIONS country-name-regex\nSample: covid 'German.*'")
+(def usage "Usage: places OPTIONS -d-regex\nSample: places")
 (def opts
-  [["-c" "--countries" "List countries matching regex"]
-   ["-t" "--timeseries" "Shows timeseries added  up for matching countries"]
-   ["-d" "--date DATE" "Calculations seen from DATE"]
-   ["-l" "--look-back DAYS" "List calculations for the last DAYS" :default 1 :parse-fn atoi]
-   ["-v" "--verbose" "verbose "]
-   ["-m" "--mortal" "Show mortality changing rates"]
+  [["-d" "--date DATE" "Calculations seen from DATE" :default (joker.time/now)]
+   ["-v" "--verbose" "verbose"]
    ["-h" "--help" "calculates changing  rates of covid-19 cases  for number of comfirmed cases or deaths"]])
 (defn show-options
   [summary errors]
@@ -46,5 +42,27 @@
 (recur new-result new-i)))))
 
 ;; Entrypoint
-
-
+(defn start 
+""
+[date verbose?]
+)
+(let [{:keys [options summary errors arguments]} (cli/parse-opts *command-line-args* opts)
+      {:keys [help version ]} options
+         verbose? (:verbose options)
+         date-option (:date options)
+   ]
+  (println options arguments)
+  (cond
+    errors
+    (do
+      (show-options summary errors)
+      (os/exit -1))
+    help
+    (show-options summary nil)
+    
+    version
+    (println "version: " version)
+    :else
+    (do
+      (start  date-option  verbose?)
+      )))
