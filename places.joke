@@ -32,14 +32,15 @@
   (t/format t layout))
 (defn append-each 
   "append-each :: seq -> seq -> [Map]
-  Returns a seq of maps  by creating a map with keys :seq and :rest for each e of elements. The value for for :seq is s appended with e. The value for :rest is elements without e."
+  Returns a seq of maps  by creating a map with keys :seq and :rest for each e of elements. The value for :seq is seq s with e appended. The value for :rest is elements without e."
   [elements s]
   (as-> elements x
     (map (fn [e] (hash-map :seq  (vec (cons e s))
                            :rest (vec (remove (hash-set e) elements)))) x)))
 
 (defn k-from-n 
-  "k-from-n :: Int -> [a] [[a]]"
+  "k-from-n :: Int -> [a] [[a]]
+  Antwortet mit der seq aller  seqs der Länge  k aus unterschiedlichen Elementen aus elements"
   [k elements]
   (loop [result (append-each elements [])
          i 1]
@@ -48,19 +49,9 @@
               new-result (reduce (fn [a {:keys [seq rest]}] (concat (append-each rest seq) a)) [] result)]
           (recur new-result new-i)))))
 
-#_(defn werktag 
-    "werktag :: Int -> Int -> Int
-  Antwortet mit dem i-ten Werktag der Tage 0 .. n. Dabei ist 0 ein Montag." 
-    [i n]
-    (as-> n x
-      (range x)
-      (filter (fn [i] (not (contains? #{5 6} (mod i 7)))) x)
-
-      (nth x i)))
-
 (defn days-since-monday-1970-01-05 
   "days-since-monday-1970-01-05 :: Time -> Int
-  Antwortet 0 für Montag, 1 für Dienstag,... und  4 für Freitag und mit -1 für Samstag und Sonntag" 
+  Antwortet mit der Anzahl Tage die seit dem 05.01.1970 vergangen sind. Der 05.01.1970 war ein Montag" 
   [date]
   (let [parsed-date (parse-date date YYYY-MM-DD)
         montag-date-1970-01-05 (parse-date "1970-01-05" YYYY-MM-DD)
