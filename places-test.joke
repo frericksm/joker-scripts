@@ -13,33 +13,25 @@
 (t/deftest k-from-n
   (t/is (=  [#{"andre"}  #{"michael"}]  (vec (places/k-from-n  1 ["andre" "michael"] ))))
   (t/is (=  [#{"michael" "andre"}] (vec (places/k-from-n  2 ["andre" "michael"] ))))
-#_(t/is (= 6 (count (places/k-from-n  2 (range 4)))))
-)
-#_(t/deftest test-werktag
-  (t/is (= 0 (places/werktag 0 100)))
-  (t/is (= 1 (places/werktag 1 100)))
-  (t/is (= 2 (places/werktag 2 100)))
-  (t/is (= 3 (places/werktag 3 100)))
-  (t/is (= 4 (places/werktag 4 100)))
-  (t/is (= 7 (places/werktag 5 100)))
-  (t/is (= 8 (places/werktag 6 100)))
-)
+  (t/is (= 6 (count (places/k-from-n  2 (range 4)))))
+  )
 (t/deftest test-days-since-monday-1970-01-05
   (t/is (= 0 (places/days-since-monday-1970-01-05 "1970-01-05")))
   (t/is (= 1 (places/days-since-monday-1970-01-05 "1970-01-06")))
   (t/is (= 7 (places/days-since-monday-1970-01-05 "1970-01-12"))))
 
-(t/deftest test-werktage-since-date
-  (t/is (= 0 (places/werktage-since-date "1970-01-05")))
-  (t/is (= 1 (places/werktage-since-date "1970-01-06")))
-  (t/is (= 2 (places/werktage-since-date "1970-01-07")))
-  (t/is (= 3 (places/werktage-since-date "1970-01-08")))
-  (t/is (= 4 (places/werktage-since-date "1970-01-09")))
-  (t/is (= 5 (places/werktage-since-date "1970-01-10")))
-  (t/is (= 5 (places/werktage-since-date "1970-01-11")))
-  (t/is (= 5 (places/werktage-since-date "1970-01-12")))
-  (t/is (= 261 (places/werktage-since-date "1971-01-05")))
-)
+(t/deftest test-werktage-until-date
+  (t/is (= 0 (places/werktage-until-date "1970-01-05")))
+  (t/is (= 1 (places/werktage-until-date "1970-01-06")))
+  (t/is (= 2 (places/werktage-until-date "1970-01-07")))
+  (t/is (= 3 (places/werktage-until-date "1970-01-08")))
+  (t/is (= 4 (places/werktage-until-date "1970-01-09")))
+  (t/is (= 5 (places/werktage-until-date "1970-01-10")))
+  (t/is (= 5 (places/werktage-until-date "1970-01-11")))
+  (t/is (= 5 (places/werktage-until-date "1970-01-12")))
+  (t/is (= 6 (places/werktage-until-date "1970-01-13")))
+  (t/is (= 261 (places/werktage-until-date "1971-01-05")))
+  )
 (t/deftest test-belegung
   (t/is (= #{"Dirk" "Nico"} (places/belegung "2020-08-03")))
   (t/is (= #{"Michael" "Nico"} (places/belegung "2020-08-04")))
@@ -48,12 +40,12 @@
   (t/is (= #{"Alex" "Dirk"} (places/belegung "2020-08-07")))
   (t/is (= #{"Alex" "Nico"} (places/belegung "2020-08-08")))
   (t/is (= #{"Alex" "Nico"} (places/belegung "2020-08-09")))
-(t/is (= #{"Alex" "Nico"} (places/belegung "2020-08-10")))
+  (t/is (= #{"Alex" "Nico"} (places/belegung "2020-08-10")))
   (t/is (= #{"Dirk" "Nico"} (places/belegung "2020-08-11")))
   (t/is (= #{"Michael" "Nico"} (places/belegung "2020-08-12")))
   (t/is (= #{"Michael" "Alex"} (places/belegung "2020-08-13")))
   (t/is (= #{"Michael" "Dirk"} (places/belegung "2020-08-14")))
-
-)
+  
+  )
 
 (t/run-tests)

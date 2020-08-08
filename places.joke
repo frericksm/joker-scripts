@@ -10,6 +10,7 @@
 (def usage "Usage: places OPTIONS -d\nSample: places -d 2020-08-11")
 (def opts
   [["-d" "--date DATE" "zum Datum DATE"]
+   ["-n" "--next  NUMBER" "für die nächsten NUMBER Tage" :default 1]
    ["-v" "--verbose" "verbose"]
    ["-h" "--help" "berechnet die Raumbelegung durch 2 Personen"]])
 (defn show-options
@@ -59,9 +60,9 @@
         dur-hours (/ durarion-nanos t/hour)
         days-since (int (/ dur-hours 24))]
     days-since))
-(defn werktage-since-date
-  "werktag :: Time -> Int
-  Antwortet mit der Anzahl Werktage seit Montag dem 05.01.1970" 
+(defn werktage-until-date
+  "werktage-until-date :: Time -> Int
+  Antwortet mit der Anzahl Werktage von  Montag dem 05.01.1970 bis zum date" 
   [date]
   (let [days-since (days-since-monday-1970-01-05 date)
         result (+ (* 5 (int (/ days-since 7 )))
@@ -72,14 +73,14 @@
   "belegung :: String -> [String]
   Antwortet mit der Raumbelegung duch 2 Pesonen zum Datum. Es ist sichergestellt, daß jeder gleich oft ins Büro kann" 
   [date]
-  (let [w (werktage-since-date date)
+  (let [w (werktage-until-date date)
         alle-belegungen (k-from-n 2 names)
         result (nth alle-belegungen (mod w 6))]
 result))
 
 (defn start 
-  "Schreibt die Raumbelegung zum date in die Konsole"
-  [date verbose?]
+  "Schreibt die Raumbelegung ab date für die nächsten n Tage  in die Konsole"
+  [date n verbose?]
   (println (format "Belegung von Raum C.10.041 am %s durch %s" date (belegung date))))
 
 ;; Entrypoint
@@ -88,8 +89,9 @@ result))
       {:keys [help version ]} options
       verbose? (:verbose options)
       date-option (or (:date options) (format-date (joker.time/now) YYYY-MM-DD))
+      next-option (:next options)
       ]
-  #_(println options arguments)
+  (println options arguments)
   (cond
     errors
     (do
@@ -102,5 +104,5 @@ result))
     (println "version: " version)
     :else
     (do
-      (start  date-option verbose?)
+      (start  date-option next-option verbose?)
       )))
