@@ -6,11 +6,12 @@
             [joker.time :as t]
             [joker.http :as h]
             [joker.math :as m]
+            [joker.pprint :as pp]
             [joker.strconv :refer [atoi]]))
 (def usage "Usage: places OPTIONS -d\nSample: places -d 2020-08-11")
 (def opts
   [["-d" "--date DATE" "zum Datum DATE"]
-   ["-n" "--next  NUMBER" "für die nächsten NUMBER Tage" :default 1]
+   ["-n" "--next  NUMBER" "für die nächsten NUMBER Tage" :default 1 :parse-fn atoi]
    ["-v" "--verbose" "verbose"]
    ["-h" "--help" "berechnet die Raumbelegung durch 2 Personen"]])
 (defn show-options
@@ -29,7 +30,7 @@
 (def MDY "1/2/06")
 (defn parse-date [t layout]
   (t/parse layout t))
-(defn format-date [t layout]
+(defn format-date [layout t]
   (t/format t layout))
 (defn append-each 
   "append-each :: seq -> seq -> [Map]
@@ -75,20 +76,25 @@
   [date]
   (let [w (werktage-until-date date)
         alle-belegungen (k-from-n 2 names)
-        result (nth alle-belegungen (mod w 6))]
+        result (vec (sort (nth alle-belegungen (mod w 6))))]
 result))
 
 (defn start 
   "Schreibt die Raumbelegung ab date für die nächsten n Tage  in die Konsole"
   [date n verbose?]
-  (println (format "Belegung von Raum C.10.041 am %s durch %s" date (belegung date))))
+  (let [d (parse-date date YYYY-MM-DD)]
+  (as-> (range  n) x
+(map (fn [i] (t/add-date d 0 0 i)) x)
+(map (fn [t] (format-date YYYY-MM-DD t)) x)
+  (reduce (fn [a t] (assoc a t (belegung t))) nil x)
+)))
 
 ;; Entrypoint
 
 (let [{:keys [options summary errors arguments]} (cli/parse-opts *command-line-args* opts)
-      {:keys [help version ]} options
+      {:keys [help version]} options
       verbose? (:verbose options)
-      date-option (or (:date options) (format-date (joker.time/now) YYYY-MM-DD))
+      date-option (or (:date options) (format-date YYYY-MM-DD (joker.time/now)))
       next-option (:next options)
       ]
   (println options arguments)
@@ -103,6 +109,6 @@ result))
     version
     (println "version: " version)
     :else
-    (do
-      (start  date-option next-option verbose?)
-      )))
+(let [belegung (start  date-option next-option verbose?)]
+    (if verbose?
+(println (format "Belegung von Raum C.10.041: %s" belegung))))))
