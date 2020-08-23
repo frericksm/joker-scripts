@@ -110,5 +110,4 @@ result))
     (println "version: " version)
     :else
 (let [belegung (start  date-option next-option verbose?)]
-    (if verbose?
-(println (format "Belegung von Raum C.10.041: %s" belegung))))))
+    (println (format "Belegung von Raum C.10.041: %s" belegung)))))
